@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 // =====================
 // 1. DATA MODELS
@@ -48,17 +49,13 @@ class MoneySavingApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Money Savings System',
       debugShowCheckedModeBanner: false,
+      title: 'Money Savings',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1A2980)),
-        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF2BC0E4),
-          foregroundColor: Colors.white,
-          centerTitle: true,
-        ),
+        fontFamily: 'Roboto',
+        scaffoldBackgroundColor: const Color(0xFFF2F4F8),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
       ),
       home: const CustomerListScreen(),
     );
@@ -66,7 +63,7 @@ class MoneySavingApp extends StatelessWidget {
 }
 
 // =====================
-// 3. SERVICE LAYER
+// 3. SERVICE LAYER (UNCHANGED)
 // =====================
 
 class SavingService {
@@ -130,12 +127,12 @@ class SavingService {
     return _transactions
         .where((t) => t.customerId == customerId)
         .toList()
-      ..sort((a, b) => b.id.compareTo(a.id));
+      ..sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
   }
 }
 
 // =====================
-// 4. BALANCE CARD
+// 4. BEAUTIFUL BALANCE CARD
 // =====================
 
 class CurrentBalanceCard extends StatelessWidget {
@@ -151,24 +148,34 @@ class CurrentBalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [color, color.withOpacity(0.7)],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, 6),
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Current Balance',
-            style: const TextStyle(color: Colors.white70),
+            style: TextStyle(color: Colors.white70),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             'GH₵${customer.currentBalance.toStringAsFixed(2)}',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 32,
+              fontSize: 34,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -179,7 +186,7 @@ class CurrentBalanceCard extends StatelessWidget {
 }
 
 // =====================
-// 5. CUSTOMER LIST
+// 5. CUSTOMER LIST SCREEN (MODERN)
 // =====================
 
 class CustomerListScreen extends StatefulWidget {
@@ -201,30 +208,44 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   void _addCustomer() {
     final controller = TextEditingController();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Add Customer'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'Customer Name'),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Add Customer',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Customer Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+              onPressed: () {
+                if (controller.text.isNotEmpty) {
+                  SavingService.addCustomer(controller.text.trim());
+                  _refresh();
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                SavingService.addCustomer(controller.text.trim());
-                _refresh();
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
       ),
     );
   }
@@ -234,23 +255,36 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     _refresh();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Money Savings System')),
+      appBar: AppBar(
+        title: const Text('Money Savings'),
+        centerTitle: true,
+      ),
       body: customers.isEmpty
           ? const Center(child: Text('No customers added yet'))
           : ListView.builder(
+              padding: const EdgeInsets.all(16),
               itemCount: customers.length,
               itemBuilder: (_, i) {
                 final c = customers[i];
                 return Card(
+                  elevation: 4,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
                   child: ListTile(
-                    title: Text(c.name),
-                    subtitle:
-                        Text('Balance: GH₵${c.currentBalance.toStringAsFixed(2)}'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    title: Text(
+                      c.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(
+                      'Balance: GH₵${c.currentBalance.toStringAsFixed(2)}',
+                    ),
+                    trailing: Wrap(
+                      spacing: 8,
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.add, color: Colors.green),
+                          icon: const Icon(Icons.add_circle, color: Colors.green),
                           onPressed: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -259,7 +293,8 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                           ).then((_) => _refresh()),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.remove, color: Colors.red),
+                          icon:
+                              const Icon(Icons.remove_circle, color: Colors.red),
                           onPressed: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -292,7 +327,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
 }
 
 // =====================
-// 6. DEPOSIT SCREEN
+// 6. DEPOSIT SCREEN (POLISHED)
 // =====================
 
 class DepositScreen extends StatelessWidget {
@@ -303,39 +338,25 @@ class DepositScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Deposit')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            CurrentBalanceCard(customer: customer, color: Colors.green),
-            const SizedBox(height: 30),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Amount (GH₵)'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                final amount = double.tryParse(controller.text);
-                if (amount != null && amount > 0) {
-                  SavingService.deposit(customer.id, amount);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Deposit'),
-            ),
-          ],
-        ),
-      ),
+    return _TransactionScreen(
+      title: 'Deposit',
+      color: Colors.green,
+      buttonText: 'Confirm Deposit',
+      onSubmit: () {
+        final amount = double.tryParse(controller.text);
+        if (amount != null && amount > 0) {
+          SavingService.deposit(customer.id, amount);
+          Navigator.pop(context);
+        }
+      },
+      customer: customer,
+      controller: controller,
     );
   }
 }
 
 // =====================
-// 7. WITHDRAW SCREEN
+// 7. WITHDRAW SCREEN (POLISHED)
 // =====================
 
 class WithdrawScreen extends StatelessWidget {
@@ -346,39 +367,25 @@ class WithdrawScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Withdraw')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            CurrentBalanceCard(customer: customer, color: Colors.red),
-            const SizedBox(height: 30),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Amount (GH₵)'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                final amount = double.tryParse(controller.text);
-                if (amount != null && amount > 0) {
-                  SavingService.withdraw(customer.id, amount);
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Withdraw'),
-            ),
-          ],
-        ),
-      ),
+    return _TransactionScreen(
+      title: 'Withdraw',
+      color: Colors.red,
+      buttonText: 'Confirm Withdrawal',
+      onSubmit: () {
+        final amount = double.tryParse(controller.text);
+        if (amount != null && amount > 0) {
+          SavingService.withdraw(customer.id, amount);
+          Navigator.pop(context);
+        }
+      },
+      customer: customer,
+      controller: controller,
     );
   }
 }
 
 // =====================
-// 8. TRANSACTION HISTORY
+// 8. TRANSACTION HISTORY (CLEAN)
 // =====================
 
 class TransactionHistoryScreen extends StatelessWidget {
@@ -388,30 +395,93 @@ class TransactionHistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final transactions =
-        SavingService.getTransactions(customer.id);
+    final formatter = DateFormat('dd MMM yyyy • hh:mm a');
+    final transactions = SavingService.getTransactions(customer.id);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Transaction History')),
-      body: transactions.isEmpty
-          ? const Center(child: Text('No transactions yet'))
-          : ListView.builder(
-              itemCount: transactions.length,
-              itemBuilder: (_, i) {
-                final t = transactions[i];
-                return ListTile(
-                  leading: Icon(
-                    t.isDeposit ? Icons.arrow_upward : Icons.arrow_downward,
-                    color: t.isDeposit ? Colors.green : Colors.red,
-                  ),
-                  title: Text(
-                    '${t.isDeposit ? "+" : "-"}GH₵${t.amount.toStringAsFixed(2)}',
-                  ),
-                  subtitle:
-                      Text('Balance: GH₵${t.runningBalance.toStringAsFixed(2)}'),
-                );
-              },
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: transactions.length,
+        itemBuilder: (_, i) {
+          final t = transactions[i];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor:
+                    t.isDeposit ? Colors.green : Colors.red,
+                child: Icon(
+                  t.isDeposit ? Icons.add : Icons.remove,
+                  color: Colors.white,
+                ),
+              ),
+              title: Text(
+                '${t.isDeposit ? '+' : '-'}GH₵${t.amount.toStringAsFixed(2)}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                '${formatter.format(t.dateAdded)}\nBalance: GH₵${t.runningBalance.toStringAsFixed(2)}',
+              ),
             ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// =====================
+// SHARED TRANSACTION UI
+// =====================
+
+class _TransactionScreen extends StatelessWidget {
+  final String title;
+  final Color color;
+  final String buttonText;
+  final VoidCallback onSubmit;
+  final Customer customer;
+  final TextEditingController controller;
+
+  const _TransactionScreen({
+    required this.title,
+    required this.color,
+    required this.buttonText,
+    required this.onSubmit,
+    required this.customer,
+    required this.controller,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            CurrentBalanceCard(customer: customer, color: color),
+            const SizedBox(height: 30),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Amount (GH₵)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                minimumSize: const Size.fromHeight(50),
+              ),
+              onPressed: onSubmit,
+              child: Text(buttonText),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
